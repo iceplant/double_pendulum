@@ -1,0 +1,125 @@
+/* Scientific Visualization Theme */
+:root {
+  --color-bg: #f7f9fc;
+  --color-text: #2c3e50;
+  --color-primary: #3498db;
+  --color-secondary: #7f8c8d;
+  --color-border: #dde1e5;
+  --color-canvas: #ffffff;
+  --color-grid: #f1f3f5;
+  --color-axis: #34495e;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --shadow: 0 2px 8px rgba(0,0,0,0.07);
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.5;
+  margin: 0;
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+h1 {
+  font-size: 1.75rem;
+  font-weight: 500;
+  text-align: center;
+  margin-bottom: 2rem;
+  color: var(--color-text);
+}
+
+.controls {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  margin: 1.5rem 0;
+  padding: 0.75rem;
+  background-color: var(--color-canvas);
+  border-radius: 6px;
+  box-shadow: var(--shadow);
+}
+
+.controls label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0.5rem 0.75rem;
+  background-color: var(--color-grid);
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.controls label:hover {
+  background-color: var(--color-border);
+}
+
+.controls input[type="checkbox"] {
+  margin: 0;
+}
+
+.canvas-container {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 2rem;
+  margin-top: 1.5rem;
+}
+
+canvas {
+  width: 100%;
+  background-color: var(--color-canvas);
+  border-radius: 6px;
+  box-shadow: var(--shadow);
+  border: none;
+}
+
+.legend {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background-color: var(--color-canvas);
+  border-radius: 4px;
+  border: 1px solid var(--color-border);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.color-box {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  border: 1px solid rgba(0,0,0,0.1);
+}
+
+/* Citation-style footer */
+.citation {
+  margin-top: 3rem;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--color-secondary);
+  border-top: 1px solid var(--color-border);
+  padding-top: 1rem;
+}
+
+@media (max-width: 1024px) {
+  .canvas-container {
+    grid-template-columns: 1fr;
+  }
+  
+  body {
+    padding: 1rem;
+  }
+}

@@ -2,41 +2,12 @@
 <html>
 <head>
     <title>Double Pendulum Comparison</title>
-    <style>
-        .canvas-container {
-            display: flex;
-            gap: 20px;
-        }
-        .controls {
-            display: flex;
-            gap: 10px;
-            margin: 10px 0;
-        }
-        canvas {
-            border: 1px solid #ccc;
-            background: white;
-        }
-        .legend {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-            padding: 10px;
-            border: 1px solid #ccc;
-            margin: 10px;
-        }
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-        .color-box {
-            width: 20px;
-            height: 20px;
-            border: 1px solid #333;
-        }
-    </style>
+    <link rel="icon" href="pendulum_favicon.png" type="image/png">
+    <link rel="stylesheet" href="index.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
+    <h1>Double Pendulum Numerical Methods Comparison</h1>
     <div class="controls">
         <!-- Checkboxes will be added here dynamically -->
     </div>
@@ -381,5 +352,9 @@
         
         loadData();
     </script>
+    <!-- Optional: Add a citation-style footer -->
+    <div class="citation">
+        Numerical Methods for Double Pendulum Dynamics. Simulation implemented using HTML5 Canvas and JavaScript.
+    </div>
 </body>
 </html>
