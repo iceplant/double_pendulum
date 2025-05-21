@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Double Pendulum Comparison</title>
+    <style>
+        .canvas-container {
+            display: flex;
+            gap: 20px;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        canvas {
+            border: 1px solid #ccc;
+            background: white;
+        }
+        .legend {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            margin: 10px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .color-box {
+            width: 20px;
+            height: 20px;
+            border: 1px solid #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <!-- Checkboxes will be added here dynamically -->
+    </div>
+    <div class="canvas-container">
+        <div>
+            <canvas id="pendulumCanvas" width="400" height="400"></canvas>
+            <div class="legend" id="pendulumLegend"></div>
+        </div>
+        <div>
+            <canvas id="energyCanvas" width="600" height="400"></canvas>
+            <div class="legend" id="energyLegend"></div>
+        </div>
+        <div>CHANGES!</div>
+    </div>
+    <script>
+        let trajectories = {};
+        let activeSimulations = new Set();
+        let currentFrame = 0;
+        
+        const pendulumCanvas = document.getElementById('pendulumCanvas');
+        const energyCanvas = document.getElementById('energyCanvas');
+        
+        const colors = {
+            'euler': '#FF4B4B',
+            'verlet': '#4CAF50',
+            'leapfrog': '#2196F3',
+            'rk4': '#9C27B0',
+            'scipy_rk45': '#FFA500'  // Add this line
+        };
+
+        const methodNames = {
+            'euler': 'Euler Method',
+            'verlet': 'Velocity Verlet',
+            'leapfrog': 'Leapfrog',
+            'rk4': 'RK4',
+            'scipy_rk45': 'SciPy RK45'  // Add this line
+        };
+
+        function setupCanvas(canvas, config) {
+            const ctx = canvas.getContext('2d');
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Setup grid
+            ctx.strokeStyle = '#ddd';
+            ctx.lineWidth = 0.5;
+            ctx.fillStyle = 'black';
+            ctx.font = '10px Arial';
+            
+            const numXLines = Math.floor(canvas.width / config.gridSize);
+            const numYLines = Math.floor(canvas.height / config.gridSize);
+            
+            // Draw vertical grid lines and x-axis values
+            for(let i = 0; i <= numXLines; i++) {
+                const x = i * config.gridSize;
+                // Grid line
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height - config.margin);
+                ctx.stroke();
+                
+                // Map grid position to axis range
+                const xValue = config.xMin + (i / numXLines) * (config.xMax - config.xMin);
+                ctx.textAlign = 'center';
+                ctx.fillText(xValue.toFixed(1), x, canvas.height - config.margin/2);
+            }
+            
+            // Draw horizontal grid lines and y-axis values
+            for(let i = 0; i <= numYLines; i++) {
+                const y = i * config.gridSize;
+                // Grid line
+                ctx.beginPath();
+                ctx.moveTo(config.margin, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+                
+                // Map grid position to axis range
+                const yValue = config.yMax - (i / numYLines) * (config.yMax - config.yMin);
+                ctx.textAlign = 'right';
+                ctx.fillText(yValue.toFixed(1), config.margin - 5, y + 4);
+            }
+            
+            // Draw axes
+            ctx.strokeStyle = 'black';
+            ctx.lineWidth = 1;
+            
+            // X-axis
+            ctx.beginPath();
+            ctx.moveTo(0, canvas.height - config.margin);
+            ctx.lineTo(canvas.width, canvas.height - config.margin);
+            ctx.stroke();
+            
+            // Y-axis
+            ctx.beginPath();
+            ctx.moveTo(config.margin, 0);
+            ctx.lineTo(config.margin, canvas.height);
+            ctx.stroke();
+            
+            // Add title and labels
+            ctx.fillStyle = 'black';
+            ctx.font = '14px Arial';
+            ctx.textAlign = 'center';
+            
+            // Title
+            ctx.fillText(config.title, canvas.width/2, 20);
+            // X-axis label
+            ctx.fillText(config.xLabel, canvas.width/2, canvas.height - 5);
+            // Y-axis label
+            ctx.save();
+            ctx.translate(10, canvas.height/2);
+            ctx.rotate(-Math.PI/2);
+            ctx.fillText(config.yLabel, 0, 0);
+            ctx.restore();
+        }
+
+        function createLegend(containerId, methods) {
+            const legend = document.getElementById(containerId);
+            legend.innerHTML = '';
+            methods.forEach(method => {
+                const item = document.createElement('div');
+                item.className = 'legend-item';
+                
+                const colorBox = document.createElement('div');
+                colorBox.className = 'color-box';
+                colorBox.style.backgroundColor = colors[method];
+                
+                const label = document.createElement('span');
+                label.textContent = methodNames[method];
+                
+                item.appendChild(colorBox);
+                item.appendChild(label);
+                legend.appendChild(item);
+            });
+        }
+
+        function drawPendulum(ctx, pos) {
+            const margin = 40;
+            const centerX = (ctx.canvas.width + margin) / 2;  // Adjust for margin
+            const centerY = ctx.canvas.height / 2;
+            const scale = 100;
+            
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.lineTo(centerX + pos.x1 * scale, centerY - pos.y1 * scale);
+            ctx.lineTo(centerX + pos.x2 * scale, centerY - pos.y2 * scale);
+            ctx.stroke();
+            
+            // Draw masses
+            ctx.beginPath();
+            ctx.arc(centerX + pos.x1 * scale, centerY - pos.y1 * scale, 5, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(centerX + pos.x2 * scale, centerY - pos.y2 * scale, 5, 0, 2 * Math.PI);
+            ctx.fill();
+        }
+
+        function drawEnergyPlot(ctx, energies, method) {
+            const margin = 40;
+            const plotWidth = ctx.canvas.width - 2 * margin;
+            const plotHeight = ctx.canvas.height - 2 * margin;
+            
+            // Debug logging
+            console.log(`Drawing energy plot for ${method}:`, {
+                energyLength: energies.length,
+                firstEnergy: energies[0],
+                lastEnergy: energies[energies.length - 1],
+                plotDimensions: { width: plotWidth, height: plotHeight }
+            });
+
+            // Use the same scale for all methods
+            const scale = plotHeight / (window.paddedMaxEnergy - window.paddedMinEnergy);
+            
+            ctx.beginPath();
+            energies.forEach((e, i) => {
+                const x = margin + (i / (energies.length - 1)) * plotWidth;
+                // Scale relative to min energy
+                const y = margin + plotHeight - ((e - window.paddedMinEnergy) * scale);
+                
+                // Debug first and last points
+                if (i === 0 || i === energies.length - 1) {
+                    console.log(`${method} point ${i}:`, { x, y, energy: e });
+                }
+                
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            });
+            ctx.stroke();
+        }
+        
+        // Add this function to reset the energy scale
+        function resetEnergyScale() {
+            window.globalMaxEnergy = null;  // This will force recalculation
+            console.log('Energy scale reset');
+        }
+
+        function startAnimation() {
+            const pCtx = pendulumCanvas.getContext('2d');
+            const eCtx = energyCanvas.getContext('2d');
+            
+            // Setup canvases
+            setupCanvas(pendulumCanvas, 'Double Pendulum Motion', 'x position', 'y position');
+            setupCanvas(energyCanvas, 'Energy Conservation', 'Time', 'Total Energy');
+            createLegend('pendulumLegend', Array.from(activeSimulations));
+            createLegend('energyLegend', Array.from(activeSimulations));
+            
+            console.log('Starting animation with methods:', Array.from(activeSimulations));
+            
+            function animate() {
+                try {
+                    // Calculate current energy bounds
+                    const currentEnergies = Array.from(activeSimulations).flatMap(
+                        method => trajectories[method].energies.slice(0, currentFrame + 1)
+                    );
+                    
+                    // Debug active simulations and energies
+                    console.log('Current frame:', currentFrame, {
+                        activeSimulations: Array.from(activeSimulations),
+                        energiesLength: currentEnergies.length,
+                        minEnergy: Math.min(...currentEnergies),
+                        maxEnergy: Math.max(...currentEnergies)
+                    });
+
+                    const maxE = Math.max(...currentEnergies);
+                    const minE = Math.min(...currentEnergies);
+                    const range = Math.abs(maxE - minE);
+                    const padding = range * 0.1;
+                    
+                    // Store these globally so drawEnergyPlot can access them
+                    window.paddedMaxEnergy = maxE + padding;
+                    window.paddedMinEnergy = minE - padding;
+
+
+
+                    // Configure pendulum plot
+                    setupCanvas(pendulumCanvas, {
+                        title: 'Double Pendulum Motion',
+                        xLabel: 'x position',
+                        yLabel: 'y position',
+                        xMin: -2,
+                        xMax: 2,
+                        yMin: -2,
+                        yMax: 2,
+                        gridSize: 50,
+                        margin: 40
+                    });
+
+                    // Configure energy plot
+                    setupCanvas(energyCanvas, {
+                        title: 'Energy Conservation',
+                        xLabel: 'Time',
+                        yLabel: 'Total Energy',
+                        xMin: 0,
+                        xMax: trajectories[Object.keys(trajectories)[0]].times[currentFrame],
+                        yMin: paddedMinEnergy,
+                        yMax: paddedMaxEnergy,
+                        gridSize: 50,
+                        margin: 40
+                    });
+
+                    // Draw active simulations
+                    activeSimulations.forEach(method => {
+                        const pos = trajectories[method].positions[currentFrame];
+                        const energy = trajectories[method].energies.slice(0, currentFrame + 1);
+                        
+                        // Draw pendulum
+                        pCtx.strokeStyle = colors[method];
+                        pCtx.fillStyle = colors[method];
+                        drawPendulum(pCtx, pos);
+                        
+                        // Draw energy plot
+                        eCtx.strokeStyle = colors[method];
+                        drawEnergyPlot(eCtx, energy, method);
+                    });
+                    
+                    currentFrame = (currentFrame + 1) % trajectories[Object.keys(trajectories)[0]].positions.length;
+                    requestAnimationFrame(animate);
+                } catch (error) {
+                    console.error('Animation error:', error);
+                }
+            }
+            
+            animate();
+        }
+        
+        async function loadData() {
+            try {
+                console.log('Loading data...');
+                const response = await fetch('outputs/pendulum_comparison_data.json');
+                if (!response.ok) throw new Error('Failed to load data');
+                trajectories = await response.json();
+                
+                // Debug loaded data
+                Object.keys(trajectories).forEach(method => {
+                    console.log(`${method} data:`, {
+                        energyPoints: trajectories[method].energies.length,
+                        timePoints: trajectories[method].times.length,
+                        energyRange: {
+                            min: Math.min(...trajectories[method].energies),
+                            max: Math.max(...trajectories[method].energies)
+                        }
+                    });
+                });
+                
+                // Add debug info for animation
+                console.log('First frame data:', {
+                    euler: trajectories.euler.positions[0],
+                    totalFrames: trajectories.euler.positions.length
+                });
+                
+                // Create toggles for each method
+                const controls = document.querySelector('.controls');
+                Object.keys(trajectories).forEach(method => {
+                    const label = document.createElement('label');
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.checked = true;
+                    checkbox.onchange = () => {
+                        if (checkbox.checked) {
+                            activeSimulations.add(method);
+                        } else {
+                            activeSimulations.delete(method);
+                        }
+                        // Reset energy scale when methods change
+                        resetEnergyScale();
+                    };
+                    label.appendChild(checkbox);
+                    label.appendChild(document.createTextNode(method));
+                    controls.appendChild(label);
+                    activeSimulations.add(method);
+                });
+                
+                startAnimation();
+            } catch (error) {
+                console.error('Error loading data:', error);
+                document.body.innerHTML += `<p style="color: red">Error: ${error.message}</p>`;
+            }
+        }
+        
+        loadData();
+    </script>
+</body>
+</html>
