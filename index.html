@@ -49,7 +49,7 @@
             <canvas id="energyCanvas" width="600" height="400"></canvas>
             <div class="legend" id="energyLegend"></div>
         </div>
-        <div>CHANGES!</div>
+        <div>MORE!</div>
     </div>
     <script>
         let trajectories = {};
@@ -301,6 +301,7 @@
 
                     // Draw active simulations
                     activeSimulations.forEach(method => {
+                        console.log("current frame: ", currentFrame);
                         const pos = trajectories[method].positions[currentFrame];
                         const energy = trajectories[method].energies.slice(0, currentFrame + 1);
                         
